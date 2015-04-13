@@ -134,6 +134,9 @@ endmodule
 }</textarea>
 <button onclick="GenerateJSON()">Verilog to JSON.</button>
 <button onclick="GenerateSVG()">JSON to Schematic.</button>
+<hr>
+Console output :<br />
+<textarea readonly id="console" style="width: 100%; height: 50%; position: right;"></textarea>
  <script>
 	var previous_code = '', current_code = '', previous_JSON = '', current_JSON = '';
 	
@@ -142,14 +145,19 @@ endmodule
 	ys.verbose = false;
 	ys.logprint = false;
 	ys.echo = false;
-
+	
+	document.getElementById('console').value = '';
+	
 	// button functions
 	function GenerateJSON() { // Verilog -> JSON
 		var index = 0, output = '';
 		current_code = document.getElementById('Verilog').value;
 		if (current_code != previous_code) {
 			ys.write_file("input.v", current_code);
-			ys.run('design -reset; read_verilog input.v; synth -run coarse; synth -run fine;');
+			output = ys.run('design -reset; read_verilog input.v; synth -run coarse; synth -run fine;');
+			log('Synthesis : ');
+			log(output);
+			log('[GOLIREV] Generating JSON File');
 			output = ys.run('write_json');
 			
 			index = output.indexOf('{');
@@ -158,12 +166,16 @@ endmodule
 			
 			previous_code = current_code;
 		}
+		
+		else {
+			log('[GOLIREV] No modifications to do.');
+		}
 	}
 
 	function GenerateSVG() { // JSON -> Verilog
 		current_JSON = document.getElementById('JSON').value;
 		if (current_JSON != previous_JSON) {
-			//Reset();
+			log('[GOLIREV] Generating SVG file from the JSON file');
 			Init();
 			json_yosysJS2 = document.getElementById('JSON').value;
 			json_yosysJS2 = JSON.parse(json_yosysJS2);
@@ -173,11 +185,14 @@ endmodule
 			
 			previous_JSON = current_JSON;
 		}
+		
+		else {
+			log('[GOLIREV] No modifications to do.');
+		}
 	}
 
+	
+	
 </script>
-<hr>
-Console output :<br />
-<textarea readonly id="console" style="width: 100%; height: 50%; position: right;"></textarea>
 </body>
 </html>
