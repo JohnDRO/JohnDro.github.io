@@ -36,7 +36,7 @@
 }
 
 function ParseJson(json_yosysJS) { // Read the JSON file produced by yosysJS and then parse it and set CircuitInfo, Components, Netlist and Constants
-	// D�finition et initialisation des variables
+	// Définition et initialisation des variables
 	var Circuit_Name; // circuits related variables
 	
 	var io_names, cells_name;
@@ -181,11 +181,12 @@ function GenerateAllGates(SVG_Element, Gate_Type) {
 	}
 
 	CircuitInfo[4] = SVG_Element.text('Circuit : ' + CircuitInfo[2]).draggable(function(x, y) { return { x: x < 1000, y: y < 500 } }).fill('#000').stroke({ width: 0.1 }).center(100, 100);
+	nodes.add(CircuitInfo[4]); // Circuit name is in the spannable and zoomable
 }
 
 function GenerateGate(SVG_Element, Gate_Type, Label, Gate_Norm, hide_label) { // Generate a gate and return the svgjs element created.
 	var group = draw.group(), text, text1, text2, text3, text4, longeur = 0, rect;
-	var MAXX = 1000, MAXY = 500;
+	var MAXX = 5000, MAXY = 5000;
 	
 	if (Gate_Type < 0 || Gate_Type > 8) // 0 == INPUT, 1 == OUTPUT, 2 == BUF, 3 == NOT, 4 == AND, 5 == OR, 6 == XOR, 7 == DFF_P, 8 == MUX
 		return -1;
@@ -208,7 +209,7 @@ function GenerateGate(SVG_Element, Gate_Type, Label, Gate_Norm, hide_label) { //
 			group.add(rect);
 			group.add(text);
 			
-			group.stroke({ width: 1 }).fill('#FFF').center(900, 150).draggable(function(x, y) { return { x: x < MAXX, y: y < MAXY } })
+			group.stroke({ width: 1 }).fill('#FFF').center(0, 0).draggable(function(x, y) { return { x: x < MAXX, y: y < MAXY } })
 			
 			group.dragmove = function() {
 				GenerateAllWires(draw, Gate_Norm);
@@ -225,7 +226,7 @@ function GenerateGate(SVG_Element, Gate_Type, Label, Gate_Norm, hide_label) { //
 			group.add(rect);	
 			group.add(text);
 			
-			group.stroke({ width: 1 }).fill('#FFF').center(900, 150).draggable(function(x, y) { return { x: x < MAXX, y: y < MAXY } })
+			group.stroke({ width: 1 }).fill('#FFF').center(0, 0).draggable(function(x, y) { return { x: x < MAXX, y: y < MAXY } })
 			
 			group.dragmove = function() {
 				GenerateAllWires(draw, Gate_Norm);
@@ -258,7 +259,7 @@ function GenerateGate(SVG_Element, Gate_Type, Label, Gate_Norm, hide_label) { //
 				}
 			}
 			
-			group.stroke({ width: 1 }).fill('#FFF').center(900, 150).draggable(function(x, y) { return { x: x < MAXX, y: y < MAXY } })
+			group.stroke({ width: 1 }).fill('#FFF').center(0, 0).draggable(function(x, y) { return { x: x < MAXX, y: y < MAXY } })
 			
 			group.dragmove = function() {
 				GenerateAllWires(draw, Gate_Norm);
@@ -292,7 +293,7 @@ function GenerateGate(SVG_Element, Gate_Type, Label, Gate_Norm, hide_label) { //
 				}
 			}
 			
-			group.stroke({ width: 1 }).fill('#FFF').center(900, 150).draggable(function(x, y) { return { x: x < MAXX, y: y < MAXY } })
+			group.stroke({ width: 1 }).fill('#FFF').center(0, 0).draggable(function(x, y) { return { x: x < MAXX, y: y < MAXY } })
 			
 			group.dragmove = function() {
 				GenerateAllWires(draw, Gate_Norm);
@@ -326,7 +327,7 @@ function GenerateGate(SVG_Element, Gate_Type, Label, Gate_Norm, hide_label) { //
 				}
 			}
 			
-			group.stroke({ width: 1 }).fill('#FFF').center(900, 150).draggable(function(x, y) { return { x: x < MAXX, y: y < MAXY } })
+			group.stroke({ width: 1 }).fill('#FFF').center(0, 0).draggable(function(x, y) { return { x: x < MAXX, y: y < MAXY } })
 		
 			group.dragmove = function() {
 				GenerateAllWires(draw, Gate_Norm);
@@ -361,7 +362,7 @@ function GenerateGate(SVG_Element, Gate_Type, Label, Gate_Norm, hide_label) { //
 				}
 			}
 			
-			group.stroke({ width: 1 }).fill('#FFF').center(900, 150).draggable(function(x, y) { return { x: x < MAXX, y: y < MAXY } })
+			group.stroke({ width: 1 }).fill('#FFF').center(150, 150).draggable(function(x, y) { return { x: x < MAXX, y: y < MAXY } })
 		
 			group.dragmove = function() {
 				GenerateAllWires(draw, Gate_Norm);
@@ -398,7 +399,7 @@ function GenerateGate(SVG_Element, Gate_Type, Label, Gate_Norm, hide_label) { //
 				}
 			}
 			
-			group.stroke({ width: 1 }).fill('#FFF').center(900, 150).draggable(function(x, y) { return { x: x < MAXX, y: y < MAXY } })
+			group.stroke({ width: 1 }).fill('#FFF').center(0, 0).draggable(function(x, y) { return { x: x < MAXX, y: y < MAXY } })
 		
 			group.dragmove = function() {
 				GenerateAllWires(draw, Gate_Norm);
@@ -426,7 +427,7 @@ function GenerateGate(SVG_Element, Gate_Type, Label, Gate_Norm, hide_label) { //
 				group.add(text3);
 			}
 			
-			group.stroke({ width: 1 }).fill('#FFF').center(900, 150).draggable(function(x, y) { return { x: x < MAXX, y: y < MAXY } })
+			group.stroke({ width: 1 }).fill('#FFF').center(0, 0).draggable(function(x, y) { return { x: x < MAXX, y: y < MAXY } })
 		
 			group.dragmove = function() {
 				GenerateAllWires(draw, Gate_Norm);
@@ -457,7 +458,7 @@ function GenerateGate(SVG_Element, Gate_Type, Label, Gate_Norm, hide_label) { //
 				group.add(text4);
 			}
 			
-			group.stroke({ width: 1 }).fill('#FFF').center(900, 150).draggable(function(x, y) { return { x: x < MAXX, y: y < MAXY } })
+			group.stroke({ width: 1 }).fill('#FFF').center(0, 0).draggable(function(x, y) { return { x: x < MAXX, y: y < MAXY } })
 		
 			group.dragmove = function() {
 				GenerateAllWires(draw, Gate_Norm);
@@ -469,7 +470,9 @@ function GenerateGate(SVG_Element, Gate_Type, Label, Gate_Norm, hide_label) { //
 		break;
 	} 
 	
-	group.style('cursor', 'move');
+	group.style('cursor', 'move'); // Change the cursor style
+	
+	nodes.add(group); // Span and zoom
 	
 	return group;
 }
@@ -481,8 +484,10 @@ function GenerateAllWires(draw, Gate_Norme) { // This function generates wires b
 	var Offset1 = 0, Offset2 = 0; // Points offset (see function GetOffset)
 
 	// 1. Removing "old" wires
-	for (i = 1; i <= Wires[0]; i++)
+	for (i = 1; i <= Wires[0]; i++) {
 		Wires[i].remove();
+		WireLength[i] = 0;
+	}
 	
 	Wires[0] = 0;
 
@@ -500,6 +505,7 @@ function GenerateAllWires(draw, Gate_Norme) { // This function generates wires b
 				yb = Components[NetList[i][2][0]][6].y() + Offset2[1];
 				
 				Wires[n] = GenerateOneWire(xa, xb, ya, yb); // There is only two components so I only have to make a wire between the componant A and the componant B.
+				WireLength[n] = Math.floor(Math.sqrt((xb - xa)*(xb - xa) + (yb - ya)*(yb - ya)));
 				
 				Wires[0]++;
 				n++;
@@ -555,6 +561,8 @@ function GenerateAllWires(draw, Gate_Norme) { // This function generates wires b
 							yb = Components[id2][6].y() + Offset2[1];
 							
 							Wires[n] = GenerateOneWire(xa, xb, ya, yb);
+							WireLength[n] = Math.floor(Math.sqrt((xb - xa)*(xb - xa) + (yb - ya)*(yb - ya)));
+							
 							Wires[0]++;
 							n++;
 							v++;
@@ -578,6 +586,8 @@ function GenerateAllWires(draw, Gate_Norme) { // This function generates wires b
 							yb = Components[id2][6].y() + Offset2[1];
 							
 							Wires[n] = GenerateOneWire(xa, xb, ya, yb);
+							WireLength[n] = Math.floor(Math.sqrt((xb - xa)*(xb - xa) + (yb - ya)*(yb - ya)));
+							
 							Wires[0]++;
 							n++;
 							v++;
@@ -601,6 +611,8 @@ function GenerateAllWires(draw, Gate_Norme) { // This function generates wires b
 							yb = Components[id2][6].y() + Offset2[1];
 							
 							Wires[n] = GenerateOneWire(xa, xb, ya, yb);
+							WireLength[n] = Math.floor(Math.sqrt((xb - xa)*(xb - xa) + (yb - ya)*(yb - ya)));
+							
 							Wires[0]++;
 							n++;
 							v++;
@@ -627,9 +639,15 @@ function GenerateAllWires(draw, Gate_Norme) { // This function generates wires b
 		yb = Components[Constants[i][2]][6].y() + Offset2[1];
 		
 		Wires[n] = GenerateOneWire(xa, xb, ya, yb); // There is only two components so I only have to make a wire between the componant A and the componant B.
+		WireLength[n] = Math.floor(Math.sqrt((xb - xa)*(xb - xa) + (yb - ya)*(yb - ya)));
 		
 		n++;
 		Wires[0]++;
+	}
+	
+	// 4. Add wires to the pannable and zoomable group
+	for (i = 1; i <= Wires[0]; i++) {
+		nodes.add(Wires[i]);
 	}
 }
 
@@ -671,14 +689,6 @@ function GateToEqNumber(GateString) { // Gate to equivalent number. ex : input :
 	return GateNumber;
 }
 
-function MoveGateXY(gate, x, y) {
-	if (typeof gate == 'undefined' || typeof y == 'undefined' || typeof y == 'undefined') return -1;
-	
-	gate.center(x, y);
-	
-	return 1;
-}
-
 function RemoveAllGates() {
 	var i = 0;
 	
@@ -690,7 +700,7 @@ function RemoveAllGates() {
 
 }
 
-function GetOffset(Gate_Type, IO_Name, Gate_Norme) { // Decallage du départ du fil par rapport au centre de l'objet ..
+function GetOffset(Gate_Type, IO_Name, Gate_Norme) { // Get the offset for the connection point
 	var Varx = 0, Vary = 0;
 
 	if (typeof Gate_Norme == 'undefined')
@@ -908,31 +918,10 @@ function isArray(obj) { // 1000 thanks to http://blog.caplin.com/2012/01/13/java
 
 function log(str) {
 	document.getElementById('console').value = document.getElementById('console').value + (str + '\n');
-}
 
-function DisplayResults() { // Fonctions utilisé pour tester mon resultat
-	var i = 0, k = 0, b = 0;
-	
-	for (i = 1; i <= Components[0]; i++) {
-		document.write(Components[i][0] + ':' + Components[i][1] + '<br /> *');
-	}
-	
-	document.write('<hr>');
-	
-	for (i = 1, b = 0; b <= NetList[0]; i++) {
-		if (typeof NetList[i] != 'undefined') {
-			for (var l = 1; l <= NetList[i][0]; l++)
-				document.write(Components[NetList[i][l][0]][0] + '.' + NetList[i][l][1] + ' === ');
-			
-			document.write('<br />');
-			b++;
-		}
-	}
-	
-	document.write('<hr>');
-	
-	return 0;
-} 
+	var textarea = document.getElementById('console');
+	textarea.scrollTop = textarea.scrollHeight;
+}
 
 function UpdateGateType(SVG_Element, Gate_Type) { // Update SVG components (i.e. : Distinctive shape to rectangular shape).
 	var i = 0;
@@ -943,4 +932,35 @@ function UpdateGateType(SVG_Element, Gate_Type) { // Update SVG components (i.e.
 	}
 	
 	GenerateAllWires(SVG_Element, Gate_Type);
+}
+
+function GetWiresLength() {
+	var i = 0;
+	var TotalLength = 0;
+	
+		
+	for (i = 1; i <= Wires[0]; i++)
+		TotalLength += WireLength[i];
+	
+	return TotalLength;
+}
+
+function MoveGateXY(gate, x, y) {
+	if (typeof gate == 'undefined' || typeof y == 'undefined' || typeof y == 'undefined') return -1;
+	
+	gate.center(x, y);
+	
+	return 1;
+}
+
+function MoveToGrid(gate, x, y) {
+	if (typeof gate == 'undefined' || typeof y == 'undefined' || typeof y == 'undefined') return -1;
+	
+	MoveGateXY(gate, x * 100, y * 100);
+	
+	return 1;
+}
+
+function PlaceComponents () {
+	;
 }

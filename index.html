@@ -53,14 +53,88 @@ Constants[n][3] = nom de la porte (A/B/Y/S/..)
 var Wires = new Array();
 Wires[0] = 0;
 
+var WireLength = new Array();
+
+// buttons functions
+function GenerateJSON() { // Verilog -> JSON
+	var index = 0, output = '';
+	current_code = document.getElementById('Verilog').value;
+	current_button1 = document.Settings.splitnets.checked;
+	if (current_code != previous_code || current_button1 != previous_button1) {
+		ys.write_file("input.v", current_code);
+		if (current_button1 == true) { // Should we use splitnets -ports ? ( == no bus )
+			output = ys.run('design -reset; read_verilog input.v; splitnets -ports; synth -run coarse; synth -run fine;');
+			previous_button1 = true;
+		}
+		else {
+			output = ys.run('design -reset; read_verilog input.v; synth -run coarse; synth -run fine;');
+			previous_button1 = false;
+		}
+		
+		log('[GOLIREV] Synthesis : ');
+		log(output);
+		log('[GOLIREV] Generating JSON File');
+		output = ys.run('write_json');
+		
+		index = output.indexOf('{');
+		output = output.substring(index); 
+		document.getElementById('JSON').value = output;
+		
+		previous_code = current_code;
+	}
+	
+	else {
+		log('[GOLIREV] No modifications to do.');
+	}
+}
+
+function GenerateSVG() { // JSON -> SVG element
+	var i = 0;
+	current_JSON = document.getElementById('JSON').value;
+	current_Type = document.getElementById("Gate_Type").value; 
+	if (current_JSON != previous_JSON || current_Type != previous_Type) {
+		if (current_JSON == previous_JSON) { // The user only wants to change gate type. No needs to re-parse the JSON
+			log('[GOLIREV] Updating the SVG : modifying the gate type (not re-parsing the JSON data).');
+			UpdateGateType(draw, Number(current_Type));
+			for (i = 1; i <= Components[0]; i++)
+				MoveToGrid(Components[i][6], 3, 3);
+			
+			GenerateAllWires(draw, current_Type);
+		}
+		else {
+			log('[GOLIREV] Generating SVG file from the JSON file');
+			Init();
+			json_yosysJS2 = document.getElementById('JSON').value;
+			json_yosysJS2 = JSON.parse(json_yosysJS2);
+			ParseJson(json_yosysJS2);
+			GenerateAllGates(draw, current_Type);
+			
+			
+			for (i = 1; i <= Components[0]; i++)
+				MoveToGrid(Components[i][6], 3, 3);
+				
+			GenerateAllWires(draw, current_Type);
+		}
+		
+		previous_JSON = current_JSON;
+		previous_Type = current_Type;
+	}
+	
+	else {
+		log('[GOLIREV] No modifications to do.');
+	}
+}
+// --
+
 </script>
 </head>
 <body>
 Golirev IDE<hr>
 Schematic : <br />
-<div id="drawing"></div>
+<div id="drawing" style="border: 2px solid #ccc; border-radius: 4px;"></div>
 <script src="./svgjs/svg.js"></script>
 <script src="./svgjs/svg.draggable.js"></script>
+<script src="./svgjs/svg.pan-zoom.js"></script>
 <script src="./functions.js"></script>
 <script type="text/javascript" src="./yosysjs/yosysjs.js"></script>
 <hr>
@@ -142,83 +216,35 @@ endmodule
 	<select name="Gate_Type" id="Gate_Type">
            <option value="0" selected>Distinctive shape</option>
            <option value="1">Rectangular shape</option>
-       </select>
+    </select>
 </form>
 <hr>
 Console output :<br />
-<textarea readonly id="console" style="width: 100%; height: 50%; position: right;"></textarea>
- <script>
+<textarea readonly id="console" style="width: 100%; height: 30%; position: right;"></textarea>
+<script>
+	var i, n;
 	var previous_code = '', current_code = '', previous_JSON = '', current_JSON = '', previous_Type = -1;
-	
-    var draw = SVG('drawing').attr({ 'font-size': 10 }).fill('#f06');
+
+	// svg.js init
+	var draw = SVG('drawing').attr({ 'font-size': 10 }).fill('#f06').size('100%', '100%');
+	// --
+
+	// Yosys init
 	var ys = YosysJS.create();
 	ys.verbose = false;
 	ys.logprint = false;
 	ys.echo = false;
-	
+	// --
+
+	// Make the group pannable and zoomable
+	var nodes = draw.group();
+	nodes.panZoom();
+	// --
+
+	// Reset the console log
 	document.getElementById('console').value = '';
 	
-	// button functions
-	function GenerateJSON() { // Verilog -> JSON
-		var index = 0, output = '';
-		current_code = document.getElementById('Verilog').value;
-		current_button1 = document.Settings.splitnets.checked;
-		if (current_code != previous_code || current_button1 != previous_button1) {
-			ys.write_file("input.v", current_code);
-			if (current_button1 == true) { // Should we use splitnets -ports ? ( == no bus )
-				output = ys.run('design -reset; read_verilog input.v; splitnets -ports; synth -run coarse; synth -run fine;');
-				previous_button1 = true;
-			}
-			else {
-				output = ys.run('design -reset; read_verilog input.v; synth -run coarse; synth -run fine;');
-				previous_button1 = false;
-			}
-			
-			log('[GOLIREV] Synthesis : ');
-			log(output);
-			log('[GOLIREV] Generating JSON File');
-			output = ys.run('write_json');
-			
-			index = output.indexOf('{');
-			output = output.substring(index); 
-			document.getElementById('JSON').value = output;
-			
-			previous_code = current_code;
-		}
-		
-		else {
-			log('[GOLIREV] No modifications to do.');
-		}
-	}
 
-	function GenerateSVG() { // JSON -> Verilog
-		var i;
-		current_JSON = document.getElementById('JSON').value;
-		current_Type = document.getElementById("Gate_Type").value; 
-		if (current_JSON != previous_JSON || current_Type != previous_Type) {
-			if (current_JSON == previous_JSON) { // The user only wants to change gate type. No needs to re-parse the JSON
-				log('[GOLIREV] Updating the SVG : modifying the gate type (not re-parsing the JSON data).');
-				UpdateGateType(draw, Number(current_Type));
-			}
-			else {
-				log('[GOLIREV] Generating SVG file from the JSON file');
-				Init();
-				json_yosysJS2 = document.getElementById('JSON').value;
-				json_yosysJS2 = JSON.parse(json_yosysJS2);
-				ParseJson(json_yosysJS2);
-				GenerateAllGates(draw, current_Type);
-				GenerateAllWires(draw, current_Type);
-			}
-			
-			previous_JSON = current_JSON;
-			previous_Type = current_Type;
-		}
-		
-		else {
-			log('[GOLIREV] No modifications to do.');
-		}
-	}
-	
 </script>
 </body>
 </html>
