@@ -948,7 +948,8 @@ function GetWiresLength() {
 function MoveGateXY(gate, x, y) {
 	if (typeof gate == 'undefined' || typeof y == 'undefined' || typeof y == 'undefined') return -1;
 	
-	gate.center(x, y);
+	gate.x(x);
+	gate.y(y);
 	
 	return 1;
 }
@@ -961,6 +962,58 @@ function MoveToGrid(gate, x, y) {
 	return 1;
 }
 
-function PlaceComponents () {
-	;
+function PlaceCircuitName() { // Place the circuit name (i.e. 'counter_2bit') correctly (under the schematic).
+	var i = 0;
+	
+	var max_left = 0;
+	var max_right = 0;
+	var max_height = 0;
+	
+	var resultx = 0;
+	var resulty = 0;
+	
+	var Offset = +150;
+	
+	for (i = 1; i <= Components[0]; i++) { // Components (IO + Cells)
+		if (i == 1) {
+			max_left = Components[1][6].x();
+			max_right = max_left;
+			max_height = Components[1][6].y();
+		}
+		
+		else {
+			if (max_left > Components[i][6].x()) {
+				max_left = Components[i][6].x();
+			}
+			
+			if (max_right < Components[i][6].x()) {
+				max_right = Components[i][6].x();
+			}
+			
+			if (max_height < Components[i][6].y()) {
+				max_height = Components[i][6].y();
+			}
+		}
+	}
+	
+	for (i = 1; i <= Constants[0]; i++) { // Constants
+		if (max_left > Constants[i][1].x()) {
+			max_left = Constants[i][1].x();
+		}
+		
+		if (max_right < Constants[i][1].x()) {
+			max_right = Constants[i][1].x();
+		}
+		
+		if (max_height < Constants[i][1].y()) {
+			max_height = Constants[i][1].y();
+		}
+	}
+	
+	resultx = (max_right + max_left) / 2;
+	resulty = max_height  + Offset;
+	
+	MoveGateXY(CircuitInfo[4], resultx, resulty);
+	
+	return 1;
 }
