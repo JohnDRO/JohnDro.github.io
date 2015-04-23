@@ -55,9 +55,17 @@ Wires[0] = 0;
 
 var WireLength = new Array();
 
+var Grid = new Array(), a, b;
+for (a = -500; a < 500; a++) {
+	Grid[a] = new Array();
+		for (b = -500; b < 500; b++) {
+			Grid[a][b] = 0;
+	}
+}
+
 // buttons functions
 function GenerateJSON() { // Verilog -> JSON
-	var index = 0, output = '';
+	var index = 0, output = '', lines, result;
 	current_code = myCodeMirror.getValue();
 	current_button1 = document.Settings.splitnets.checked;
 	if (current_code != previous_code || current_button1 != previous_button1) {
@@ -73,18 +81,46 @@ function GenerateJSON() { // Verilog -> JSON
 		
 		log('[GOLIREV] Synthesis : ');
 		log(output);
-		log('[GOLIREV] Generating JSON File');
-		output = ys.run('write_json');
 		
-		index = output.indexOf('{');
-		output = output.substring(index); 
-		document.getElementById('JSON').value = output;
+		// Error Check
+		myCodeMirror.setGutterMarker(Number(ErrorLine) - 1, "note-gutter", "");
+		panels[BotPanelID].clear();
+	
+		lines = output.split(/\r\n|\r|\n/); 
+		result = CheckVerilogError(lines[lines.length - 2]);
+		if (result) {
+			log('[GOLIREV] Errors in your Verilog code, line : ' + result);
 		
+			// Panels && Gutter Note
+			myCodeMirror.setGutterMarker(Number(result) - 1, "note-gutter", CreateErrorSign());
+			ErrorLine = result;
+		
+			BotPanelID = addPanel("bottom", lines[lines.length - 2]);
+		}
+		else {
+			// Panels
+			panels[BotPanelID].clear();
+			BotPanelID = addPanel("bottom", "No errors in your Verilog code");
+			log('[GOLIREV] No errors in your Verilog code');
+			
+			// Generate JSON
+			log('[GOLIREV] Generating JSON File');
+			output = ys.run('write_json');
+			index = output.indexOf('{');
+			output = output.substring(index); 
+			document.getElementById('JSON').value = output;
+			// --
+		}
+		// --
+
 		previous_code = current_code;
+		
+		return (!result);
 	}
 	
 	else {
 		log('[GOLIREV] No modifications to do.');
+		return 1;
 	}
 }
 
@@ -96,7 +132,7 @@ function GenerateSVG() { // JSON -> SVG element
 		if (current_JSON == previous_JSON) { // The user only wants to change gate type. No needs to re-parse the JSON
 			log('[GOLIREV] Updating the SVG : modifying the gate type (not re-parsing the JSON data).');
 			UpdateGateType(draw, Number(current_Type));
-			GenerateAllWires(draw, current_Type);
+			GenerateAllWires(draw, Number(current_Type));
 			PlaceCircuitName();
 		}
 		else {
@@ -106,41 +142,65 @@ function GenerateSVG() { // JSON -> SVG element
 			json_yosysJS2 = JSON.parse(json_yosysJS2);
 			ParseJson(json_yosysJS2);
 			GenerateAllGates(draw, current_Type);
+			SimulatedAnnealing(current_Type);
+			CenterComponents();
 			GenerateAllWires(draw, current_Type);
 			PlaceCircuitName();
 		}
 		
 		previous_JSON = current_JSON;
 		previous_Type = current_Type;
+		
+		return 1;
+
 	}
 	
 	else {
 		log('[GOLIREV] No modifications to do.');
+		return 1;
 	}
+	
+	return 1;
 }
 // --
-
 </script>
-</head>
-<body>
-Golirev IDE<hr>
-Schematic : <br />
-<div id="drawing" style="border: 2px solid #ccc; border-radius: 4px;"></div>
+
+<script src="./functions.js"></script>
+
+<script type="text/javascript" src="./yosysjs/yosysjs.js"></script>
+
 <script src="./svgjs/svg.js"></script>
 <script src="./svgjs/svg.draggable.js"></script>
 <script src="./svgjs/svg.pan-zoom.js"></script>
-<script src="./functions.js"></script>
-<script type="text/javascript" src="./yosysjs/yosysjs.js"></script>
 
 <script src="codemirror/codemirror.js"></script>
 <link rel="stylesheet" href="codemirror/codemirror.css">
 <script src="codemirror/verilog.js"></script>
 <script src="codemirror/closebrackets.js"></script>
+<script src="codemirror/panel.js"></script>
+<script src="codemirror/active-line.js"></script>
 
 <style type="text/css">
-	.CodeMirror {border-top: 1px solid black; border-bottom: 1px solid black; border-left: 1px solid black; border-right: 1px solid black;}
+	.CodeMirror {	
+		border: 1px solid black; 
+	}
+	.panel {
+		background: #f7f7f7;
+		padding: 3px 7px;
+		font-size: 0.85em;
+		color: blue;
+		border: 1px solid black; 
+	}
+	.remove-panel {
+		float: right;
+		cursor: pointer;
+	}
 </style>
-
+</head>
+<body>
+Golirev IDE<hr>
+Schematic : <br />
+<div id="drawing" style="border: 2px solid #ccc; border-radius: 4px;"></div>
 <hr>
 Verilog code and Json Output :<br />
 
@@ -231,7 +291,7 @@ Console output :<br />
 	var previous_code = '', current_code = '', previous_JSON = '', current_JSON = '', previous_Type = -1;
 
 	// svg.js init
-	var draw = SVG('drawing').attr({ 'font-size': 10 }).fill('#f06').size('100%', '100%');
+	var draw = SVG('drawing').attr({ 'font-size': 10 }).fill('#f06').size('100%', '100%');;
 	// --
 
 	// Yosys init
@@ -250,16 +310,27 @@ Console output :<br />
 	document.getElementById('console').value = '';
 	// --
 	
+	// CodeMirror
+	var numPanels = 0;
+	var panels = {};
+	
+	var ErrorLine = 0;
+	
 	var myCodeMirror = CodeMirror.fromTextArea(Verilog, {
 		lineNumbers: true,
 		matchBrackets: true,
 		autoCloseBrackets: true,
+		indentUnit: 4,
+		gutters: ["note-gutter", "CodeMirror-linenumbers"],
 		mode: {
 		  name: "verilog",
 		  noIndentKeywords: ["package"]
-		}
-		
-});
+		}	
+	});
+	
+	var TopPanelID = addPanel("top", "Type your Verilog code here !");
+	var BotPanelID = addPanel("bottom", "The status of your code will be displayed here !");
+	// --
 
 </script>
 </body>
