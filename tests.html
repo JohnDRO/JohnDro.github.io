@@ -1,0 +1,82 @@
+<html>
+<head></head>
+<body>
+
+<script src="./functions.js"></script>
+<script type="text/javascript" src="./yosysjs/yosysjs.js"></script>
+
+<script src="./svgjs/svg.js"></script>
+<script src="./svgjs/svg.draggable.js"></script>
+<script src="./svgjs/svg.pan-zoom.js"></script>
+
+Here is a schematic about ...
+<div id="drawing" style="border: 2px solid #ccc; border-radius: 4px;"></div>
+
+<script>
+	// tests
+	var json1 = {
+  "creator": "Yosys 0.5+83 (git sha1 6c8fdb1, emcc  -Os)",
+  "modules": {
+    "mux_using_case": {
+      "ports": {
+        "din_0": {
+          "direction": "input",
+          "bits": [ 2 ]
+        },
+        "din_1": {
+          "direction": "input",
+          "bits": [ 3 ]
+        },
+        "sel": {
+          "direction": "input",
+          "bits": [ 4 ]
+        },
+        "mux_out": {
+          "direction": "output",
+          "bits": [ "0" ]
+        }
+      },
+      "cells": {
+      },
+      "netnames": {
+        "din_0": {
+          "hide_name": 0,
+          "bits": [ 2 ],
+          "attributes": {
+            "src": "input.v:14"
+          }
+        },
+        "din_1": {
+          "hide_name": 0,
+          "bits": [ 3 ],
+          "attributes": {
+            "src": "input.v:14"
+          }
+        },
+        "mux_out": {
+          "hide_name": 0,
+          "bits": [ "0" ],
+          "attributes": {
+            "src": "input.v:16"
+          }
+        },
+        "sel": {
+          "hide_name": 0,
+          "bits": [ 4 ],
+          "attributes": {
+            "src": "input.v:14"
+          }
+        }
+      }
+    }
+  }
+};
+	
+	
+	
+	var test = new Golirev('drawing', '100%', '100%');
+	test.DisplayJson(json1, 0);
+
+</script>
+</body>
+</html>
