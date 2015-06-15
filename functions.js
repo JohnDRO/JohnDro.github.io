@@ -15,8 +15,11 @@ function Init() {
 		this.CircuitInfo[4].remove();
 	// --
 	
+	this.PlacementDone = 0; // Is Placement done ?
+	this.LabelsDone = 0; // Are Labels done ?
+	
 	RemoveAllGates.call(this);
-	RemoveAllWires.call(this);
+
 	
 	// Remove Netlist
 	for (i = 1, n = 1; n <= this.NetList[0]; i++) {
@@ -25,6 +28,23 @@ function Init() {
 			n++;
 		}
 	} 
+	
+	// Reset Wires data
+	for (i = 1, n = 1; n <= this.Wires[0]; i++) {
+		if (typeof this.Wires[i] != 'undefined') {
+			this.Wires[i][0].remove();
+			this.Wires[i][1].remove();
+			n++;
+		}
+	} 
+	
+	this.Wires = new Array();
+	this.Wires[0] = 0;
+	
+	for (i = 1; i <= 300; i++)
+		this.Wires[i] = new Array();
+
+
 	// --
 	
 	// Remove Constants
@@ -37,6 +57,25 @@ function Init() {
 	this.Components[0] = 0; // Init components to 0
 	this.NetList[0] = 0; // Init links to 0
 	this.Constants[0] = 0;
+	
+
+
+	
+	// Set connections to 0. I currently use 300 as a MAX limit, but we should use this.Components[0] since this is the number of components in the circuit.
+	for (l = 0; l <= 300; l++) {
+		for (m = 0; m <= 300; m++) {
+			this.Connections[l][m] = 0;
+		}
+	}
+	
+	this.Grid = new Array();
+	var a, b;
+	for (a = -500; a < 500; a++) {
+		this.Grid[a] = new Array();
+			for (b = -500; b < 500; b++) {
+				this.Grid[a][b] = 0;
+		}
+	}
 	// --
 	
 	return 1;
@@ -58,6 +97,9 @@ function Golirev(svg_id, sizeX, sizeY) {
 	
 	// Init variables
 	this.gate_type = 0;
+	
+	this.PlacementDone = 0; // Is Placement done ?
+	this.LabelsDone = 0; // Are Labels done ?
 	
 	this.CircuitInfo = new Array(); // Informations concerning the circuits
 	/*
@@ -89,9 +131,11 @@ function Golirev(svg_id, sizeX, sizeY) {
 	NetList[n][0] = Number of elements on that connection;
 	NetList[n][1] = Array (First Object)
 			[n][1][0] = ID on the component var;
-			[n][1][1] = Name of the Output;
+			[n][1][1] = Name of the port;
 			[n][1][2] = OffsetX;
 			[n][1][3] = OffsetY;
+			[n][1][4] = Size of the port;
+			[n][1][5] = index of element;
 	NetList[n][2] = Array (Second Object)
 	NetList[n][y] = Array (ynd Object)
 	*/
@@ -107,24 +151,47 @@ function Golirev(svg_id, sizeX, sizeY) {
 	*/
 
 	this.Wires = new Array();
+	/*
+	Details about Wires
+	Wires[0] = Number of wires;
+	Wires[n][0] = svg element of the wire
+	Wires[n][1] = svg element of the text label
+	Wires[n][2] = size of element 1
+	Wires[n][3] = size of element 2
+	Wires[n][4] = label of input
+	Wires[n][5] = label of output
+	Wires[n][6] = PosX element 1
+	Wires[n][7] = PosY element 1
+	Wires[n][8] = PosX element 2
+	Wires[n][9] = PosY element 2
+
+	*
+	*
+	*
+	*
+	*/
 	this.Wires[0] = 0;
+	
+	for (i = 1; i <= 300; i++)
+		this.Wires[i] = new Array();
 
 	this.WireLength = new Array();
-
-	this.Grid = new Array();
-	var a, b;
-	for (a = -500; a < 500; a++) {
-		this.Grid[a] = new Array();
-			for (b = -500; b < 500; b++) {
-				this.Grid[a][b] = 0;
+	
+	// Set connections to 0. I currently use 300 as a MAX limit, but we should use this.Components[0] since this is the number of components in the circuit.
+	this.Connections = new Array();
+	for (l = 0; l <= 300; l++) {
+		this.Connections[l] = new Array();
+		for (m = 0; m <= 300; m++) {
+			this.Connections[l][m] = 0;
 		}
 	}
-	// --
 	
 	// Methods
 	this.DisplayJson = ShowJSON;
 	this.ParseJSON = ParseJson;
 	this.UpdateGate = UpdateGate;
+	
+	this.PlaceLabelsName = PlaceLabelsName;
 	// --
 }
 
@@ -151,6 +218,39 @@ function UpdateGate(gate_type) {
 	 UpdateGateType.call(this);
 	 GenerateAllWires.call(this);
 	 PlaceCircuitName.call(this);
+}
+
+function PlaceLabelsName() { // Place labels on wires, TODO : A function to remove them
+	var i = 0;
+	var moyenneX = 0;
+	var moyenneY = 0;
+	
+	for (i = 1; i <= this.Wires[0]; i++) { // loop on each connection in order to display informations concerning the label
+		if (this.Wires[i][2] == 1 && this.Wires[i][3] == 1) {
+			
+			moyenneX = (this.Wires[i][6] + this.Wires[i][8]) / 2;
+			moyenneY = (this.Wires[i][7] + this.Wires[i][9]) / 2 - 10;
+			if (typeof this.Wires[i][1] == 'undefined')
+				this.Wires[i][1] = this.svgjs.text("1").center(moyenneX, moyenneY);
+			else
+				this.Wires[i][1].center(moyenneX, moyenneY);
+		}
+			
+		else { // display label
+			if (typeof this.Wires[i][4] !== 'undefined' || typeof this.Wires[i][5] !== 'undefined') {
+				moyenneX = (this.Wires[i][6] + this.Wires[i][8]) / 2;
+				moyenneY = (this.Wires[i][7] + this.Wires[i][9]) / 2 - 10;
+				
+				if (typeof this.Wires[i][1] == 'undefined')
+					this.Wires[i][1] = this.svgjs.text(this.Wires[i][4] + '->' +this.Wires[i][5]).center(moyenneX, moyenneY)
+				else
+					this.Wires[i][1].center(moyenneX, moyenneY);
+			}
+			
+		}
+		
+		this.nodes.add(this.Wires[i][1]); // Erreur ici, à check
+	}
 }
 // --
 
@@ -187,6 +287,9 @@ function ParseJson(json_yosysJS) { // Read the JSON file produced by yosysJS and
 		
 		var meh2 = json_yosysJS.modules[Circuit_Name].ports[io_names[i]].bits;
 		
+		if (meh2.length > 1)
+			this.Components[this.Components[0]][0] += ' [' + (meh2.length - 1) + ':0]'; // Add the length to the label 
+		
 		for (l = 0, nbr_local_cste = 0, local_value = '"'; l < meh2.length; l++) { // I count the number of constants and I add the value to local_value
 			if (typeof meh2[l] == 'string') {
 				nbr_local_cste++;
@@ -194,7 +297,7 @@ function ParseJson(json_yosysJS) { // Read the JSON file produced by yosysJS and
 			}
 			
 			else 
-				local_value += 'X'
+				local_value += 'x'
 		}
 		
 		local_value += '"';
@@ -215,10 +318,14 @@ function ParseJson(json_yosysJS) { // Read the JSON file produced by yosysJS and
 					
 					this.NetList[meh2[l]][1] = new Array();
 					this.NetList[meh2[l]][1][0] = 1 + parseInt(i);
-					this.NetList[meh2[l]][1][1] = 0;
+					this.NetList[meh2[l]][1][1] = io_names[i];
 					
 					this.NetList[meh2[l]][1][2] = 0; // x
 					this.NetList[meh2[l]][1][3] = 0; // y
+					
+					this.NetList[meh2[l]][1][4] = meh2.length; 
+					this.NetList[meh2[l]][1][5] = l; 
+					
 					this.NetList[0]++;
 				}
 				
@@ -227,10 +334,13 @@ function ParseJson(json_yosysJS) { // Read the JSON file produced by yosysJS and
 					this.NetList[meh2[l]][this.NetList[meh2[l]][0]] = new Array();
 					
 					this.NetList[meh2[l]][this.NetList[meh2[l]][0]][0] = 1 + parseInt(i);
-					this.NetList[meh2[l]][this.NetList[meh2[l]][0]][1] = 0;
+					this.NetList[meh2[l]][this.NetList[meh2[l]][0]][1] = io_names[i];;
 					
 					this.NetList[meh2[l]][this.NetList[meh2[l]][0]][2] = 0; // x
 					this.NetList[meh2[l]][this.NetList[meh2[l]][0]][3] = 0; // y
+					
+					this.NetList[meh2[l]][this.NetList[meh2[l]][0]][4] = meh2.length; 
+					this.NetList[meh2[l]][this.NetList[meh2[l]][0]][5] = l; 
 				}
 			}
 		}
@@ -271,9 +381,11 @@ function ParseJson(json_yosysJS) { // Read the JSON file produced by yosysJS and
 				this.NetList[meh][1] = new Array();
 				this.NetList[meh][1][0] = parseInt(i) + parseInt(n) + 2;
 				this.NetList[meh][1][1] = cell_io_name[k];
-				
+
 				this.NetList[meh][1][2] = 0; // x
 				this.NetList[meh][1][3] = 0; // y
+				this.NetList[meh][1][4] = 1;
+				this.NetList[meh][1][5] = -1; 
 				this.NetList[0]++;
 			}
 		
@@ -285,6 +397,10 @@ function ParseJson(json_yosysJS) { // Read the JSON file produced by yosysJS and
 				
 				this.NetList[meh][this.NetList[meh][0]][2] = 0; // x
 				this.NetList[meh][this.NetList[meh][0]][3] = 0; // y
+				
+								
+				this.NetList[meh][this.NetList[meh][0]][4] = 1; 
+				this.NetList[meh][this.NetList[meh][0]][5] = -1; 
 			}							
 		}
 	}
@@ -293,8 +409,7 @@ function ParseJson(json_yosysJS) { // Read the JSON file produced by yosysJS and
 	this.CircuitInfo[2] = String(Circuit_Name);
 	this.CircuitInfo[3] = json_yosysJS.creator;
 	
-	//document.write('Nbr ' + Constants[0]);
-	
+
 	return 1;
 }
 // --
@@ -916,6 +1031,8 @@ function SimulatedAnnealing() { // http://www.codeproject.com/Articles/13789/Sim
         temperature *= alpha;
     }
 	
+	this.PlacementDone = 1;
+	
 }
 
 function RandomChange() { // Make a random change, must return ID_Compo, x and y.
@@ -1134,31 +1251,85 @@ function GenerateAllWires() { // This function generates wires between elements 
 	var Offset1 = 0, Offset2 = 0; // Points offset (see function GetOffset)
 
 	// 1. Removing "old" wires
-	for (i = 1; i <= this.Wires[0]; i++) {
-		this.Wires[i].remove();
-		this.WireLength[i] = 0;
-	}
-	
-	this.Wires[0] = 0;
+	RemoveAllWires.call(this);
 
 	// 2. Making new wires
 	for (i = 1, n = 1; (n - v) <= this.NetList[0] && i <= 300; i++) {
 	//for (i = 1, n = 1; (n - v) <= 300 && i < 300; i++) {
 		if (typeof this.NetList[i] != 'undefined') {
 			if (this.NetList[i][0] == 2) { // Only two this.Components on the same line.
-				Offset1 = GetOffset.call(this, this.Components[this.NetList[i][1][0]][1], this.NetList[i][1][1]);
-				Offset2 = GetOffset.call(this, this.Components[this.NetList[i][2][0]][1], this.NetList[i][2][1]);
+				if (this.Connections[this.NetList[i][1][0]][this.NetList[i][2][0]] == 1 && this.Connections[this.NetList[i][2][0]][this.NetList[i][1][0]] == 1 && (this.Components[this.NetList[i][1][0]][1] + this.Components[this.NetList[i][2][0]][1]) <= 2) {
+					;
+				}
+				
+				else {
+					Offset1 = GetOffset.call(this, this.Components[this.NetList[i][1][0]][1], this.NetList[i][1][1]);
+					Offset2 = GetOffset.call(this, this.Components[this.NetList[i][2][0]][1], this.NetList[i][2][1]);
 
-				xa = this.Components[this.NetList[i][1][0]][6].x() + Offset1[0];
-				ya = this.Components[this.NetList[i][1][0]][6].y() + Offset1[1];
-				xb = this.Components[this.NetList[i][2][0]][6].x() + Offset2[0];
-				yb = this.Components[this.NetList[i][2][0]][6].y() + Offset2[1];
+					xa = this.Components[this.NetList[i][1][0]][6].x() + Offset1[0];
+					this.Wires[n][6] = xa;
+					ya = this.Components[this.NetList[i][1][0]][6].y() + Offset1[1];
+					this.Wires[n][7] = ya;
+					xb = this.Components[this.NetList[i][2][0]][6].x() + Offset2[0];
+					this.Wires[n][8] = xb;
+					yb = this.Components[this.NetList[i][2][0]][6].y() + Offset2[1];
+					this.Wires[n][9] = yb;
+					
+					this.Wires[n][2] = this.NetList[i][1][4];
+					this.Wires[n][3] = this.NetList[i][2][4];
+					
+					this.Wires[n][0] = GenerateOneWire.call(this, xa, xb, ya, yb); // There is only two this.Components so I only have to make a wire between the componant A and the componant B.
+					this.WireLength[n] = Math.floor(Math.sqrt((xb - xa)*(xb - xa) + (yb - ya)*(yb - ya)));
+					
+									
+					this.Wires[0]++;
+					n++;
+					
+					this.Connections[this.NetList[i][1][0]][this.NetList[i][2][0]] = 1;
+					this.Connections[this.NetList[i][2][0]][this.NetList[i][1][0]] = 1;
+				}
 				
-				this.Wires[n] = GenerateOneWire.call(this, xa, xb, ya, yb); // There is only two this.Components so I only have to make a wire between the componant A and the componant B.
-				this.WireLength[n] = Math.floor(Math.sqrt((xb - xa)*(xb - xa) + (yb - ya)*(yb - ya)));
-				
-				this.Wires[0]++;
-				n++;
+				// Labels
+				if (this.PlacementDone && !this.LabelsDone) {
+					if ((this.NetList[i][2][1] == 'Y' && this.Components[this.NetList[i][2][0]][1] > 1) || this.Components[this.NetList[i][2][0]][1] == 0) { // If the second component is an output
+
+						if (typeof this.Wires[n - 1][4] == 'undefined' || this.Wires[n - 1][4] == '')
+							this.Wires[n - 1][4] = this.NetList[i][2][1];
+						else
+							this.Wires[n - 1][4] += ', ' + this.NetList[i][2][1];
+						
+						if (this.Wires[n - 1][3] != 1)
+							this.Wires[n - 1][4] += '[' + this.NetList[i][2][5] + ']'; 
+						
+						if (typeof this.Wires[n - 1][5] == 'undefined' || this.Wires[n - 1][5] == '')
+							this.Wires[n - 1][5] = this.NetList[i][1][1]
+						else
+							this.Wires[n - 1][5] += ', ' + this.NetList[i][1][1];
+						
+						if (this.Wires[n - 1][2] != 1)
+							this.Wires[n - 1][5] += '[' + this.NetList[i][1][5] + ']'; 
+					}
+					
+					else {
+						if (typeof this.Wires[n - 1][5] == 'undefined' || this.Wires[n - 1][5] == '')
+							this.Wires[n - 1][5] = this.NetList[i][2][1];
+						else
+							this.Wires[n - 1][5] += ', ' + this.NetList[i][2][1];
+						
+						if (this.Wires[n - 1][3] != 1)
+							this.Wires[n - 1][5] += '[' + this.NetList[i][2][5] + ']'; 
+						
+						if (typeof this.Wires[n - 1][4] == 'undefined' || this.Wires[n - 1][4] == '')
+							this.Wires[n - 1][4] = this.NetList[i][1][1]
+						else
+							this.Wires[n - 1][4] += ', ' + this.NetList[i][1][1]
+						if (this.Wires[n - 1][2] != 1)
+							this.Wires[n - 1][4] += '[' + this.NetList[i][1][5] + ']'; 	
+					}
+				}
+				// --
+
+					
 			}
 				
 			else { // More than 2 this.Components on the same line.
@@ -1168,7 +1339,6 @@ function GenerateAllWires() { // This function generates wires between elements 
 				// Case 3 : One cell output and the rest is cell input
 				
 				// The first step is to count the number of each elements and then connect them.
-				
 				var input_circuit_number = 0;
 				var output_circuit_number = 0;
 				var output_cell_number = 0;
@@ -1200,6 +1370,11 @@ function GenerateAllWires() { // This function generates wires between elements 
 				if (input_circuit_number >= 1) { // case 1
 					for (var m = 1; m <= this.NetList[i][0]; m++) { // I connect the circuit input to the other elements
 						if (m != index1) {
+							if (this.Connections[this.NetList[i][m][0]][this.NetList[i][index1][0]] == 1 && this.Connections[this.NetList[i][index1][0]][this.NetList[i][m][0]] == 1 && (this.Components[this.NetList[i][m][0]][1] + this.Components[this.NetList[i][index1][0]][1]) <= 2) {
+							;
+						}
+						
+						else {
 							id1 = this.NetList[i][m][0];
 							id2 = this.NetList[i][index1][0];
 							
@@ -1207,17 +1382,64 @@ function GenerateAllWires() { // This function generates wires between elements 
 							Offset2 = GetOffset.call(this, this.Components[id2][1], this.NetList[i][index1][1]);
 							
 							xa = this.Components[id1][6].x() + Offset1[0];
+							this.Wires[n][6] = xa;
 							ya = this.Components[id1][6].y() + Offset1[1];
+							this.Wires[n][7] = ya;
 
 							xb = this.Components[id2][6].x() + Offset2[0];
+							this.Wires[n][8] = xb;
 							yb = this.Components[id2][6].y() + Offset2[1];
+							this.Wires[n][9] = yb;
 							
-							this.Wires[n] = GenerateOneWire.call(this, xa, xb, ya, yb);
+							this.Wires[n][2] = this.NetList[i][m][4];
+							this.Wires[n][3] = this.NetList[i][index1][4];
+							
+							this.Wires[n][0] = GenerateOneWire.call(this, xa, xb, ya, yb);
 							this.WireLength[n] = Math.floor(Math.sqrt((xb - xa)*(xb - xa) + (yb - ya)*(yb - ya)));
 							
 							this.Wires[0]++;
 							n++;
 							v++;
+						}
+							
+						// Labels
+						if (this.PlacementDone && !this.LabelsDone) {
+							if ((this.NetList[i][m][1] == 'Y' && this.Components[this.NetList[i][m][0]][1] > 1) || this.Components[this.NetList[i][m][0]][1] == 1) { // If the second component is an output
+								if (typeof this.Wires[n - 1][4] == 'undefined' || this.Wires[n - 1][4] == '')
+									this.Wires[n - 1][4] = this.NetList[i][m][1];
+								else
+									this.Wires[n - 1][4] += ', ' + this.NetList[i][m][1];
+								
+								if (this.NetList[i][m][5] != -1)
+									this.Wires[n - 1][4] += '[' + this.NetList[i][m][5] + ']'; 
+								
+								if (typeof this.Wires[n - 1][5] == 'undefined' || this.Wires[n - 1][5] == '')
+									this.Wires[n - 1][5] = this.NetList[i][index1][1]
+								else
+									this.Wires[n - 1][5] += ', ' + this.NetList[i][index1][1];
+								
+								if (this.NetList[i][index1][5] != -1)
+									this.Wires[n - 1][5] += '[' + this.NetList[i][index1][5] + ']'; 
+							}
+							
+							else {
+								if (typeof this.Wires[n - 1][5] == 'undefined' || this.Wires[n - 1][5] == '')
+									this.Wires[n - 1][5] = this.NetList[i][m][1];
+								else
+									this.Wires[n - 1][5] += ', ' + this.NetList[i][m][1];
+								
+								if (this.NetList[i][m][5] != -1)
+									this.Wires[n - 1][5] += '[' + this.NetList[i][m][5] + ']'; 
+								
+								if (typeof this.Wires[n - 1][4] == 'undefined' || this.Wires[n - 1][4] == '')
+									this.Wires[n - 1][4] = this.NetList[i][index1][1]
+								else
+									this.Wires[n - 1][4] += ', ' + this.NetList[i][index1][1]
+								if (this.NetList[i][index1][5] != -1)
+									this.Wires[n - 1][4] += '[' + this.NetList[i][index1][5] + ']'; 	
+							}
+						}
+						// --
 						}
 					}
 				}
@@ -1225,24 +1447,79 @@ function GenerateAllWires() { // This function generates wires between elements 
 				else if (output_circuit_number >= 1) { // case 2
 					for (var m = 1; m <= this.NetList[i][0]; m++) { // I connect the circuit output to the other elements
 						if (m != index2) {
-							id1 = this.NetList[i][m][0];
-							id2 = this.NetList[i][index2][0];
+							if (this.Connections[this.NetList[i][m][0]][this.NetList[i][index2][0]] == 1 && this.Connections[this.NetList[i][index2][0]][this.NetList[i][m][0]] == 1 && (this.Components[this.NetList[i][m][0]][1] + this.Components[this.NetList[i][index2][0]][1]) <= 2) {
+								;
+							}
 							
-							Offset1 = GetOffset.call(this, this.Components[id1][1], this.NetList[i][m][1]);
-							Offset2 = GetOffset.call(this, this.Components[id2][1], this.NetList[i][index2][1]);
+							else {
 							
-							xa = this.Components[id1][6].x() + Offset1[0];
-							ya = this.Components[id1][6].y() + Offset1[1];
+								id1 = this.NetList[i][m][0];
+								id2 = this.NetList[i][index2][0];
+								
+								Offset1 = GetOffset.call(this, this.Components[id1][1], this.NetList[i][m][1]);
+								Offset2 = GetOffset.call(this, this.Components[id2][1], this.NetList[i][index2][1]);
+								
+								xa = this.Components[id1][6].x() + Offset1[0];
+								this.Wires[n][6] = xa;
+								ya = this.Components[id1][6].y() + Offset1[1];
+								this.Wires[n][7] = ya;
 
-							xb = this.Components[id2][6].x() + Offset2[0];
-							yb = this.Components[id2][6].y() + Offset2[1];
+								xb = this.Components[id2][6].x() + Offset2[0];
+								this.Wires[n][8] = xb;
+								yb = this.Components[id2][6].y() + Offset2[1];
+								this.Wires[n][9] = yb;
+								
+								this.Wires[n][2] = this.NetList[i][m][4];
+								this.Wires[n][3] = this.NetList[i][index2][4];
+								
+								this.Wires[n][0] = GenerateOneWire.call(this, xa, xb, ya, yb);
+								this.WireLength[n] = Math.floor(Math.sqrt((xb - xa)*(xb - xa) + (yb - ya)*(yb - ya)));
+								
+								this.Wires[0]++;
+								n++;
+								v++;
+							}
 							
-							this.Wires[n] = GenerateOneWire.call(this, xa, xb, ya, yb);
-							this.WireLength[n] = Math.floor(Math.sqrt((xb - xa)*(xb - xa) + (yb - ya)*(yb - ya)));
+							// Labels
+							if (this.PlacementDone && !this.LabelsDone) {
+								if ((this.NetList[i][m][1] == 'Y' && this.Components[this.NetList[i][m][0]][1] > 1) || this.Components[this.NetList[i][m][0]][1] == 1) { // If the second component is an output
+									if (typeof this.Wires[n - 1][4] == 'undefined' || this.Wires[n - 1][4] == '')
+										this.Wires[n - 1][4] = this.NetList[i][m][1];
+									else
+										this.Wires[n - 1][4] += ', ' + this.NetList[i][m][1];
+									
+									if (this.NetList[i][m][5] != -1)
+										this.Wires[n - 1][4] += '[' + this.NetList[i][m][5] + ']'; 
+									
+									if (typeof this.Wires[n - 1][5] == 'undefined' || this.Wires[n - 1][5] == '')
+										this.Wires[n - 1][5] = this.NetList[i][index2][1]
+									else
+										this.Wires[n - 1][5] += ', ' + this.NetList[i][index2][1];
+									
+									if (this.NetList[i][index2][5] != -1)
+										this.Wires[n - 1][5] += '[' + this.NetList[i][index2][5] + ']'; 
+								}
+								
+								else {
+									if (typeof this.Wires[n - 1][5] == 'undefined' || this.Wires[n - 1][5] == '')
+										this.Wires[n - 1][5] = this.NetList[i][m][1];
+									else
+										this.Wires[n - 1][5] += ', ' + this.NetList[i][m][1];
+									
+									if (this.NetList[i][m][5] != -1)
+										this.Wires[n - 1][5] += '[' + this.NetList[i][m][5] + ']'; 
+									
+									if (typeof this.Wires[n - 1][4] == 'undefined' || this.Wires[n - 1][4] == '')
+										this.Wires[n - 1][4] = this.NetList[i][index2][1]
+									else
+										this.Wires[n - 1][4] += ', ' + this.NetList[i][index2][1]
+									if (this.NetList[i][index2][5] != -1)
+										this.Wires[n - 1][4] += '[' + this.NetList[i][index2][5] + ']'; 	
+								}
+							}
+							// --
 							
-							this.Wires[0]++;
-							n++;
-							v++;
+
 						}
 					}
 				}
@@ -1250,24 +1527,79 @@ function GenerateAllWires() { // This function generates wires between elements 
 				else if (output_cell_number >= 1) { // case 3
 					for (var m = 1; m <= this.NetList[i][0]; m++) { // I connect the cell output to the other elements
 						if (m != index3) { // problème source/emetteur ici.
-							id1 = this.NetList[i][m][0];
-							id2 = this.NetList[i][index3][0];
+							if (this.Connections[this.NetList[i][m][0]][this.NetList[i][index3][0]] == 1 && this.Connections[this.NetList[i][index3][0]][this.NetList[i][m][0]] == 1 && (this.Components[this.NetList[i][m][0]][1] + this.Components[this.NetList[i][index3][0]][1]) <= 2) {
+								;
+							}
 							
-							Offset1 = GetOffset.call(this, this.Components[id1][1], this.NetList[i][m][1]);
-							Offset2 = GetOffset.call(this, this.Components[id2][1], this.NetList[i][index3][1]);
-							
-							xa = this.Components[id1][6].x() + Offset1[0];
-							ya = this.Components[id1][6].y() + Offset1[1];
+							else {
+								id1 = this.NetList[i][m][0];
+								id2 = this.NetList[i][index3][0];
+								
+								Offset1 = GetOffset.call(this, this.Components[id1][1], this.NetList[i][m][1]);
+								Offset2 = GetOffset.call(this, this.Components[id2][1], this.NetList[i][index3][1]);
+								
+								xa = this.Components[id1][6].x() + Offset1[0];
+								this.Wires[n][6] = xa;
+								ya = this.Components[id1][6].y() + Offset1[1];
+								this.Wires[n][7] = ya;
 
-							xb = this.Components[id2][6].x() + Offset2[0];
-							yb = this.Components[id2][6].y() + Offset2[1];
+								xb = this.Components[id2][6].x() + Offset2[0];
+								this.Wires[n][8] = xb;
+								yb = this.Components[id2][6].y() + Offset2[1];
+								this.Wires[n][9] = yb;
+								
+								this.Wires[n][2] = this.NetList[i][m][4];
+								this.Wires[n][3] = this.NetList[i][index3][4];
+								
+								this.Wires[n][0] = GenerateOneWire.call(this, xa, xb, ya, yb);
+								this.WireLength[n] = Math.floor(Math.sqrt((xb - xa)*(xb - xa) + (yb - ya)*(yb - ya)));
+								
+								this.Wires[0]++;
+								n++;
+								v++;
+															
+							}
 							
-							this.Wires[n] = GenerateOneWire.call(this, xa, xb, ya, yb);
-							this.WireLength[n] = Math.floor(Math.sqrt((xb - xa)*(xb - xa) + (yb - ya)*(yb - ya)));
+							// Labels
+							if (this.PlacementDone && !this.LabelsDone) {
+								if ((this.NetList[i][m][1] == 'Y' && this.Components[this.NetList[i][m][0]][1] > 1) || this.Components[this.NetList[i][m][0]][1] == 1) { // If the second component is an output
+									if (typeof this.Wires[n - 1][4] == 'undefined' || this.Wires[n - 1][4] == '')
+										this.Wires[n - 1][4] = this.NetList[i][m][1];
+									else
+										this.Wires[n - 1][4] += ', ' + this.NetList[i][m][1];
+									
+									if (this.NetList[i][m][5] != -1)
+										this.Wires[n - 1][4] += '[' + this.NetList[i][m][5] + ']'; 
+									
+									if (typeof this.Wires[n - 1][5] == 'undefined' || this.Wires[n - 1][5] == '')
+										this.Wires[n - 1][5] = this.NetList[i][index3][1]
+									else
+										this.Wires[n - 1][5] += ', ' + this.NetList[i][index3][1];
+									
+									if (this.NetList[i][index3][5] != -1)
+										this.Wires[n - 1][5] += '[' + this.NetList[i][index3][5] + ']'; 
+								}
+								
+								else {
+									if (typeof this.Wires[n - 1][5] == 'undefined' || this.Wires[n - 1][5] == '')
+										this.Wires[n - 1][5] = this.NetList[i][m][1];
+									else
+										this.Wires[n - 1][5] += ', ' + this.NetList[i][m][1];
+									
+									if (this.NetList[i][m][5] != -1)
+										this.Wires[n - 1][5] += '[' + this.NetList[i][m][5] + ']'; 
+									
+									if (typeof this.Wires[n - 1][4] == 'undefined' || this.Wires[n - 1][4] == '')
+										this.Wires[n - 1][4] = this.NetList[i][index3][1]
+									else
+										this.Wires[n - 1][4] += ', ' + this.NetList[i][index3][1]
+									if (this.NetList[i][index3][5] != -1)
+										this.Wires[n - 1][4] += '[' + this.NetList[i][index3][5] + ']';
+								}
+							}
+							// --
 							
-							this.Wires[0]++;
-							n++;
-							v++;
+
 						}
 					}
 				}
@@ -1290,7 +1622,7 @@ function GenerateAllWires() { // This function generates wires between elements 
 		xb = this.Components[this.Constants[i][2]][6].x() + Offset2[0];
 		yb = this.Components[this.Constants[i][2]][6].y() + Offset2[1];
 		
-		this.Wires[n] = GenerateOneWire.call(this, xa, xb, ya, yb); // There is only two components so I only have to make a wire between the componant A and the componant B.
+		this.Wires[n][0] = GenerateOneWire.call(this, xa, xb, ya, yb); // There is only two components so I only have to make a wire between the componant A and the componant B.
 		this.WireLength[n] = Math.floor(Math.sqrt((xb - xa)*(xb - xa) + (yb - ya)*(yb - ya)));
 		
 		n++;
@@ -1299,8 +1631,17 @@ function GenerateAllWires() { // This function generates wires between elements 
 	
 	// 4. Add wires to the pannable and zoomable group
 	for (i = 1; i <= this.Wires[0]; i++) {
-		this.nodes.add(this.Wires[i]);
+		this.nodes.add(this.Wires[i][0]);
 	}
+	
+	if (this.PlacementDone && !this.LabelsDone) {
+		this.LabelsDone = 1;
+		PlaceLabelsName.call(this);	
+	}	
+	if (this.PlacementDone && this.LabelsDone) {
+		PlaceLabelsName.call(this);	
+	}
+
 }
 
 function GenerateOneWire(xa, xb, ya, yb) {
@@ -1313,9 +1654,17 @@ function GenerateOneWire(xa, xb, ya, yb) {
 
 function RemoveAllWires() {
 	var i = 0;
+	var l = 0;
+	var m = 0;
 	
 	for (i = 1; i <= this.Wires[0]; i++)
-		this.Wires[i].remove();
+		this.Wires[i][0].remove();
+	
+	for (l = 0; l <= 300; l++) {
+		for (m = 0; m <= 300; m++) {
+			this.Connections[l][m] = 0;
+		}
+	}
 	
 	this.Wires[0] = 0;
 }
