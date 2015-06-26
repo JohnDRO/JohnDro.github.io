@@ -101,6 +101,9 @@ function Golirev(svg_id, sizeX, sizeY) {
 	// Init variables
 	this.gate_type = 0;
 	
+	this.zoomSpeed = 5;
+	this.Stayfocus = 0;
+	
 	this.PlacementDone = 0; // Is Placement done ?
 	this.LabelsDone = 0; // Are Labels done ?
 	
@@ -205,12 +208,26 @@ function Golirev(svg_id, sizeX, sizeY) {
 	// --
 }
  
-function ShowJSON(json_object, gate_type) {
+function ShowJSON(json_object, gate_type, Async, Stayfocus) {
 	this.gate_type = gate_type;
+	
+	if(typeof Async === 'undefined')
+		this.Async = 1;
+	else
+		this.Async = Async;
+	
+	if(typeof Stayfocus === 'undefined')
+		this.Stayfocus = 1;
+	else
+		this.Stayfocus = Stayfocus;
+	
 	ParseJson.call(this, json_object);
+	
 	// Pan + zoom init
-	this.nodes = this.svgjs.group();
-	this.nodes.panZoom({zoomSpeed : 5});
+	if (typeof this.nodes == 'undefined') {
+		this.nodes = this.svgjs.group();
+		this.nodes.panZoom({zoomSpeed : this.zoomSpeed});	
+	}
 	// --
 	
 	GenerateAllGates.call(this);
@@ -219,11 +236,11 @@ function ShowJSON(json_object, gate_type) {
 		InitSimulatedAnnealing.call(this);
 		SimulatedAnnealing.call(this); 
 		
-		CenterComponents.call(this); 
 		GenerateAllWires.call(this); 
 		PlaceCircuitName.call(this);
 		
 		OptimizePlacement.call(this);
+		CenterComponents.call(this); 
 	}
 	
 	else { // async with setTimeout
@@ -233,7 +250,7 @@ function ShowJSON(json_object, gate_type) {
 		
 		setTimeout(function(){RunSimulatedAnnealing.call(obj)}, 10);
 	}	
-
+	
 	return this.CircuitInfo;
 }
 
@@ -1125,13 +1142,16 @@ function RunSimulatedAnnealing() { //  Simulated Annealing (window.setTimeout)
 			console.log(this.iteration + ' : ' + this.temperature + ' : ' + Date());
 			this.PlacementDone = 1;
 			
-			CenterComponents.call(this); 
 			GenerateAllWires.call(this); 
 			PlaceCircuitName.call(this);
 			
 			OptimizePlacement.call(this);
+			CenterComponents.call(this); 
 		}
 	}
+	
+	if (this.Stayfocus)
+		CenterComponents.call(this); // Focus the SVG element while doing Simulated Annealing.
 	
 	if (!Out) { // Do we still have iterations to do (i == 100 but this.temperature >= this.epsilon).
 		var obj = this;
@@ -1233,45 +1253,44 @@ function CenterComponents() {
 	var x = 0;
 	var y = 0;
 	
-	for (i = 1; i <= this.Components[0]; i++) {
-		if (i == 1) {
-			MaxLeft = this.Components[i][6].x();
-			MaxHeight = this.Components[i][6].y();
-		}
-		
+	// First : I compute the MaxLeft and MaxHeight point.
+	for (i = 1, MaxLeft = this.Components[i][6].x(), MaxHeight = this.Components[i][6].y(); i <= this.Components[0]; i++) {
 		x = this.Components[i][6].x();
 		y = this.Components[i][6].y();
 		
-		if (MaxLeft > x) {
+		if (MaxLeft > x)
 			MaxLeft = x;
-		}
-		if (MaxHeight < y) {
+		
+		if (MaxHeight > y)
 			MaxHeight = y;
-		}
 	}
-	
+
 	for (i = 1; i <= this.Constants[0]; i++) {
 		x = this.Constants[i][1].x();
 		y = this.Constants[i][1].y();
 		
-		if (MaxLeft > x) {
+		if (MaxLeft > x)
 			MaxLeft = x;
-		}
-		if (MaxHeight < y) {
-			MaxHeight = y;
-		}
-	}
-	
-	x = x / 100;
-	y = y / 100;
 
-	for (i = 1; i <= this.Components[0]; i++) {
-		MoveToGrid(this.Components[i][6], this.Components[i][6].x()/100 - x + 1, this.Components[i][6].y()/100 - y + 1);
+		if (MaxHeight > y)
+			MaxHeight = y;
 	}
+	// --
 	
-	for (i = 1; i <= this.Constants[0]; i++) {
-		MoveToGrid(this.Constants[i][1], this.Constants[i][1].x()/100 - x + 1, this.Constants[i][1].y()/100 - y + 1);
-	}
+	// Then I focus the SVG element from this point. 
+	// I have to be careful using .setPosition() since the .setPosition() axis and the SVG element axis are different : this is why I have to use some minus signs.
+	if (MaxLeft > 0 && MaxHeight > 0) // Cadran 1
+		this.nodes.panZoom({zoomSpeed : this.zoomSpeed}).setPosition(-MaxLeft, -MaxHeight);
+	
+	else if (MaxLeft > 0 && MaxHeight < 0) // Cadran 2
+		this.nodes.panZoom({zoomSpeed : this.zoomSpeed}).setPosition(-MaxLeft, MaxHeight);
+	
+	else if (MaxLeft < 0 && MaxHeight > 0) // Cadran 3
+		this.nodes.panZoom({zoomSpeed : this.zoomSpeed}).setPosition(MaxLeft, -MaxHeight);
+	
+	else // Cadran 4
+		this.nodes.panZoom({zoomSpeed : this.zoomSpeed}).setPosition(MaxLeft, MaxHeight);
+	// --
 }
 
 function PlaceCircuitName() { // Place the circuit name (i.e. 'counter_2bit') correctly (under the schematic).
@@ -1355,6 +1374,31 @@ function OptimizePlacement () { // Run the 3 functions to optimize the placement
 	
 	var obj = this;	
 	setTimeout(function(){OptimizePlacementSwitching.call(obj)}, 10);
+}
+
+function OptimizeConnectionSwitching () {
+	var i = 0;
+	var WireLength = 0;
+	
+	for (i = 1; i <= this.Components[0]; i++) {
+		if (this.Components[i][1] == 4 || this.Components[i][1] == 5 || this.Components[i][1] == 6) {
+			WireLength = GetWiresLength.call(this); // Get the current state
+			
+			this.Components[i][7] = 1; // Reverse this component
+			
+			GenerateAllWires.call(this); // Update the circuit
+			
+			if (WireLength > GetWiresLength.call(this)) { // We are decreasing the wirelength (good)
+				; // I have to modify Netlist[..] and Wires[]. Or I will have incorrect netlabels
+			}
+			
+			else { // We are increasing the wirelength (bad)
+				this.Components[i][7] = 0;
+			}
+		}
+	}
+	
+	GenerateAllWires.call(this);
 }
 
 function OptimizePlacementSwitching () { // First function : Try to switch components in order to get a lower WireLength
@@ -2502,34 +2546,5 @@ function GetConnection (Gate_Type, Connection_Name) {
 // Other
 function isArray(obj) { // 1000 thanks to http://blog.caplin.com/2012/01/13/javascript-is-hard-part-1-you-cant-trust-arrays/
 	return Object.prototype.toString.apply(obj) === "[object Array]";
-}
-// --
-
-// Tests
-function OptimizeConnectionSwitching () {
-	var i = 0;
-	var WireLength = 0;
-	
-	for (i = 1; i <= this.Components[0]; i++) {
-		if (this.Components[i][1] == 4 || this.Components[i][1] == 5 || this.Components[i][1] == 6) {
-			WireLength = GetWiresLength.call(this); // Get the current state
-			
-			this.Components[i][7] = 1; // Reverse this component
-			
-			GenerateAllWires.call(this); // Update the circuit
-			
-			if (WireLength > GetWiresLength.call(this)) { // We are decreasing the wirelength (good)
-				;
-				//
-				//
-			}
-			
-			else { // We are increasing the wirelength (bad)
-				this.Components[i][7] = 0;
-			}
-		}
-	}
-	
-	GenerateAllWires.call(this);
 }
 // --
