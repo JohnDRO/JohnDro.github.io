@@ -97,7 +97,7 @@ function Golirev(svg_id, sizeX, sizeY) {
 	// SVG Init
 	this.svgjs = SVG(svg_id).attr({ 'font-size': 10 }).fill('#f06').size('100%', '100%');
 	// --
-	
+
 	// Init variables
 	this.gate_type = 0;
 	
@@ -193,18 +193,22 @@ function Golirev(svg_id, sizeX, sizeY) {
 	}
 	
 	// Simulated Annealing parameters
-	this.Async = 1; // 0 means that we will use the blocking function, 1 means that we will use the window.setTimeout method.
+	this.Async; // 0 means that we will use the blocking function, 1 means that we will use the window.setTimeout method.
 	this.distance;
 	this.alpha;
 	this.temperature;
 	this.epsilon;
 	this.iteration;
+	
+	this.CostCorrectWireDirection = -10;
+	this.CostReverseWireDirection = 300;
 	// --
 	
 	// Methods
 	this.DisplayJson = ShowJSON;
 	this.ParseJSON = ParseJson;
 	this.UpdateGate = UpdateGate;
+	this.focus = CenterComponents;
 	// --
 }
  
@@ -1184,7 +1188,7 @@ function RandomChange() { // Make a random change, must return ID_Compo, x and y
 				MoveToGrid(this.Constants[RandomID][1], x + gain, y);
 			
 				this.Grid[x][y] = 0;				
-				this.Grid[x + gain][y] = 1; 				
+				this.Grid[x + gain][y] = RandomID; 				
 			}
 		}
 		
@@ -1193,7 +1197,7 @@ function RandomChange() { // Make a random change, must return ID_Compo, x and y
 				MoveToGrid(this.Constants[RandomID][1], x, y + gain);
 
 				this.Grid[x][y] = 0;				
-				this.Grid[x][y + gain] = 1; 				
+				this.Grid[x][y + gain] = RandomID; 				
 			}	
 		}
 	}
@@ -1213,7 +1217,11 @@ function RandomChange() { // Make a random change, must return ID_Compo, x and y
 				MoveToGrid(this.Components[RandomID][6], x + gain, y);
 
 				this.Grid[x][y] = 0;				
-				this.Grid[x + gain][y] = 1; 				
+				this.Grid[x + gain][y] = RandomID; 				
+			}
+			
+			else {
+				;
 			}
 		}
 		
@@ -1222,8 +1230,11 @@ function RandomChange() { // Make a random change, must return ID_Compo, x and y
 				MoveToGrid(this.Components[RandomID][6], x, y + gain);
 
 				this.Grid[x][y] = 0;				
-				this.Grid[x][y + gain] = 1; 				
+				this.Grid[x][y + gain] = RandomID; 				
 			}	
+			else {
+				;
+			}
 		}
 	}
 	
@@ -1233,13 +1244,13 @@ function RandomChange() { // Make a random change, must return ID_Compo, x and y
 function ReverseChange(ID, x, y, type) {
 	if (type == 0) {
 		this.Grid[this.Components[ID][6].x() / 100][this.Components[ID][6].y() / 100] = 0;
-		this.Grid[x][y] = 1;
+		this.Grid[x][y] = ID;
 		MoveToGrid(this.Components[ID][6], x, y);
 	}
 	
 	else {
 		this.Grid[this.Constants[ID][1].x() / 100][this.Constants[ID][1].y() / 100] = 0;
-		this.Grid[x][y] = 1;
+		this.Grid[x][y] = ID;
 		MoveToGrid(this.Constants[ID][1], x, y);	
 	}
 }
@@ -1252,6 +1263,8 @@ function CenterComponents() {
 	
 	var x = 0;
 	var y = 0;
+	
+	this.nodes.panZoom({zoomSpeed : this.zoomSpeed}).zoom(1);
 	
 	// First : I compute the MaxLeft and MaxHeight point.
 	for (i = 1, MaxLeft = this.Components[i][6].x(), MaxHeight = this.Components[i][6].y(); i <= this.Components[0]; i++) {
@@ -1664,11 +1677,13 @@ function GenerateAllWires() { // This function generates wires between elements 
 						
 					
 					if (this.NetList[i][1][6] == 1 && xa > xb)
-						this.WireLength[n] += 200 ;
+						this.WireLength[n] += this.CostReverseWireDirection;
 					
-					if (this.NetList[i][2][6] == 1 && xb > xa)
-						this.WireLength[n] +=200;
+					else if (this.NetList[i][2][6] == 1 && xb > xa)
+						this.WireLength[n] += this.CostReverseWireDirection;
 					
+					else
+						this.WireLength[n] += this.CostCorrectWireDirection;
 									
 					this.Wires[0]++;
 					n++;
