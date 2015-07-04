@@ -216,12 +216,12 @@ function ShowJSON(json_object, gate_type, Async, Stayfocus) {
 	this.webworker = new Worker('webworker.js');
 
 	this.webworker.onmessage = function(event) {
-		alert("Received message " + event.data);
+		alert("Receeived message " + event.data);
 		//doSomething();
 	}
 
 	// On démarre le worker en lui envoyant un 1er message
-	this.webworker.postMessage("test");
+	this.webworker.postMessage(json_object);
 	/*
 	this.gate_type = gate_type;
 	
