@@ -1,7 +1,7 @@
 function messageHandler(event) {
     
     var messageSent = event.data;
-	postMessage(messageSent);
+	postMessage('test1');
 
 }
 
