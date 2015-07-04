@@ -201,7 +201,7 @@ function Golirev(svg_id, sizeX, sizeY) {
 	this.iteration;
 	// --
 	
-	this.webworker;
+	
 	
 	// Methods
 	this.DisplayJson = ShowJSON;
@@ -209,19 +209,27 @@ function Golirev(svg_id, sizeX, sizeY) {
 	this.UpdateGate = UpdateGate;
 	this.focus = CenterComponents;
 	// --
+	
+	this.webworker;
+	
+	this.webworker = new Worker('webworker.js'); 
+
+	this.webworker.onmessage = function(event) {
+		alert(event.data);
+		//doSomething();
+	}
+	
 }
  
 function ShowJSON(json_object, gate_type, Async, Stayfocus) {
 	
-	this.webworker = new Worker('webworker.js');
 
-	this.webworker.onmessage = function(event) {
-		alert("Receeived message " + event.data);
-		//doSomething();
-	}
+	// We send the JSON Object to the 
+	this.webworker.postMessage({
+		'cmd': 'parse_json',
+		'data': json_object)
+	});
 
-	// On démarre le worker en lui envoyant un 1er message
-	this.webworker.postMessage(json_object);
 	/*
 	this.gate_type = gate_type;
 	
